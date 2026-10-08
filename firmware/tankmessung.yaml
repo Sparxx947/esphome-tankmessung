@@ -1,0 +1,217 @@
+# Oeltank (Erdtank 7.000 l, DIN 6608, Ø 1,6 m × 3,75 m) — pneumatische Fuellstandsmessung an der Kupfer-Messleitung
+# Prinzip: Pumpe drueckt Luft in die Messleitung, bis sie am Tankboden ausperlt → Pumpe aus → der Restdruck in der
+#   Leitung entspricht der Oelsaeule ueber dem Leitungsende (Heizoel ρ ≈ 0,84: 1 cm ≈ 0,824 mbar, voll ≈ 132 mbar).
+# Hardware: ESP32-WROOM-32U DevKitC V4 (der zweite aus der Bestellung 04.10.)
+#   Drucksensor-Modul 0–40 kPa (HX710B):  VCC → 3V3, GND → GND, OUT → GPIO19, SCK → GPIO18
+#   Luftpumpe M20 (3–3,7 V) ueber Dual-MOSFET-Modul XY-MOS (CQUANZX):  TRIG/PWM → GPIO25, VIN 5 V, Pumpe an OUT+/OUT−, 1N5819 Strich an OUT+
+#   Rueckschlagventil zwischen Pumpe und T-Stueck (Richtung: Pumpe → Leitung)
+#   Abzweig zur alten Anzeige muss DICHT sein (ein Rueckschlagventil als Verschluss leckt, Test 08.10.)
+# Bewusst KEINE automatische Messung ab Werk: erst nach dem Freiblasen der Messleitung und dem Einmessen
+#   den Schalter „Automatische Messung“ einschalten. Die Pumpe laeuft nur ueber das Skript, mit fester Hoechstdauer.
+# Einmessen: Nullpunkt (Schlauch offen, Sensor drucklos) → roh_null; dann bekannter Druck (z. B. Wassersaeule
+#   10 cm = 9,81 mbar im Schlauch) → roh_pro_mbar. Danach per Peilstab/Liefermenge pruefen.
+# Stand 08.10.2026 — Notiz project_oeltank_fuellstandsensor
+
+substitutions:
+  name: tankmessung
+  friendly_name: Öltank
+  # --- eingemessen 08.10.2026 16:18/16:21 am Tisch (Wassersaeule 10 cm), Sensor warm ---
+  roh_null: "-2788747.0"     # HX710B-Rohwert bei 0 mbar (Nullpunkt-Drift beim Aufwaermen ~0,5 mbar in den ersten Minuten)
+  roh_pro_mbar: "70056.0"    # Rohwert-Anstieg pro mbar: (−2101492 − −2788747) / 9,81
+  oel_mbar_pro_cm: "0.824"  # Heizoel EL, ρ ≈ 0,84 kg/l
+  tank_radius_dm: "8.0"
+  tank_laenge_dm: "37.5"
+  tank_nenn_l: "7000"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  comment: Oeltank pneumatisch (HX710B + Pumpe)
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+  level: INFO
+
+api:
+  encryption:
+    key: !secret tank_api_key
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: Tank-Fallback
+    password: !secret tank_ap_password
+
+captive_portal:
+
+# ---------------- Pumpe ----------------
+output:
+  - platform: ledc
+    id: pumpe_pwm
+    pin: GPIO25
+    frequency: 20000Hz
+    max_power: 85%          # 08.10.: 70 % (≈3,3 V bei 4,77 V VIN) → 85 % ≈ 4,05 V (eigentliche Stoerung war ein Leck am Anzeige-Abzweig)
+
+fan:
+  - platform: speed
+    id: pumpe
+    output: pumpe_pwm
+    name: Pumpe
+    restore_mode: ALWAYS_OFF
+    entity_category: diagnostic
+    on_turn_on:
+      - script.execute: pumpe_sicherung
+
+number:
+  - platform: template
+    id: spuelzeit
+    name: Spülzeit Pumpe
+    unit_of_measurement: s
+    min_value: 5
+    max_value: 60
+    step: 1
+    initial_value: 30
+    restore_value: true
+    optimistic: true
+    entity_category: config
+  - platform: template
+    id: beruhigungszeit
+    name: Beruhigungszeit
+    unit_of_measurement: s
+    min_value: 2
+    max_value: 60
+    step: 1
+    initial_value: 10
+    restore_value: true
+    optimistic: true
+    entity_category: config
+
+switch:
+  - platform: template
+    id: auto_messung
+    name: Automatische Messung
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    entity_category: config
+
+button:
+  - platform: template
+    name: Messung starten
+    on_press:
+      - script.execute: messung
+  - platform: restart
+    name: Neustart
+    entity_category: diagnostic
+
+script:
+  # Sicherung: Pumpe laeuft nie laenger als 60 s am Stueck, auch nicht von Hand eingeschaltet
+  - id: pumpe_sicherung
+    mode: restart
+    then:
+      - delay: 60s
+      - fan.turn_off: pumpe
+  - id: messung
+    mode: single
+    then:
+      - logger.log: "Messung: Pumpe an"
+      - fan.turn_on:
+          id: pumpe
+          speed: 100
+      - delay: !lambda "return (uint32_t) (id(spuelzeit).state * 1000);"
+      - fan.turn_off: pumpe
+      - logger.log: "Messung: Pumpe aus, warte auf Beruhigung"
+      - delay: !lambda "return (uint32_t) (id(beruhigungszeit).state * 1000);"
+      - component.update: druck_roh
+      - delay: 2s
+      - component.update: druck_roh
+      - logger.log: "Messung: fertig"
+
+interval:
+  - interval: 6h
+    then:
+      - if:
+          condition:
+            switch.is_on: auto_messung
+          then:
+            - script.execute: messung
+
+# ---------------- Sensoren ----------------
+sensor:
+  - platform: hx711          # liest auch HX710B (Gain 128)
+    id: druck_roh
+    name: Druck Rohwert
+    dout_pin: GPIO19
+    clk_pin: GPIO18
+    gain: 128
+    update_interval: never   # nur innerhalb der Messung
+    entity_category: diagnostic
+    on_value:
+      then:
+        - component.update: druck_mbar
+
+  - platform: template
+    id: druck_mbar
+    name: Druck
+    unit_of_measurement: mbar
+    device_class: pressure
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: never
+    lambda: |-
+      if (isnan(id(druck_roh).state)) return NAN;
+      return (id(druck_roh).state - ${roh_null}) / ${roh_pro_mbar};
+    on_value:
+      then:
+        - component.update: fuellhoehe
+
+  - platform: template
+    id: fuellhoehe
+    name: Füllhöhe
+    unit_of_measurement: cm
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: never
+    lambda: |-
+      float p = id(druck_mbar).state;
+      if (isnan(p)) return NAN;
+      float h = p / ${oel_mbar_pro_cm};
+      if (h < 0) h = 0;
+      if (h > 2 * ${tank_radius_dm} * 10) h = 2 * ${tank_radius_dm} * 10;
+      return h;
+    on_value:
+      then:
+        - component.update: inhalt
+
+  - platform: template
+    id: inhalt
+    name: Inhalt
+    unit_of_measurement: L
+    device_class: volume_storage
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: never
+    lambda: |-
+      // liegender Zylinder, Boeden vernachlaessigt; auf Nennvolumen skaliert
+      float h = id(fuellhoehe).state / 10.0;   // dm
+      if (isnan(h)) return NAN;
+      const float r = ${tank_radius_dm}, L = ${tank_laenge_dm};
+      float a = r * r * acosf((r - h) / r) - (r - h) * sqrtf(fmaxf(0, 2 * r * h - h * h));
+      float voll = M_PI * r * r * L;
+      return a * L * (${tank_nenn_l} / voll);
+
+  - platform: wifi_signal
+    name: WLAN-Signal
+    update_interval: 300s
+    entity_category: diagnostic
+  - platform: uptime
+    name: Laufzeit
+    update_interval: 300s
+    entity_category: diagnostic
