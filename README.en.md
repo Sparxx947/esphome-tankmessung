@@ -223,7 +223,7 @@ The pump is built for 3–3.7 V and runs on 5 V – hence the limit.
 **Measurement sequence (script `messung` – measurement):** pump 100 % (= 85 % PWM) for the *flush time* (default 30 s). **While
 pumping** the HX710B is read every 0.5 s; if the pressure rises above the *overpressure limit* (default 150 mbar), the pump switches
 off immediately and the measurement is discarded (`binary_sensor.oltank_uberdruck_abbruch` = on). Fill height and contents are **not**
-calculated while pumping. Otherwise: pump off → *settling time* (default 10 s) → read → 2 s → read again. The sensor is read **only**
+calculated while pumping. Otherwise: pump off → *settling time* (default 10 s) → **15 single readings** (every ~0.25 s) → **median** as the result; the 10–90 % spread of the 15 readings is published to HA as *measurement spread*. The sensor is read **only**
 in this script (`update_interval: never`). The highest pressure while pumping goes to `sensor.oltank_hochstdruck_beim_pumpen`.
 
 **Fill height** = pressure / 0.824 + *line end above bottom* (default 6.5 cm). The measuring line ends above the tank bottom; oil
@@ -231,7 +231,7 @@ below it is invisible to the measurement (derivation in [docs/einmessen.en.md](d
 
 > The overpressure cut-off has **never triggered** so far (the line is clear) – untested in a real fault.
 
-### Entities in Home Assistant (16, checked 09.10.2026)
+### Entities in Home Assistant (17, checked 09.10.2026)
 
 | Entity | Type | Purpose |
 |---|---|---|
@@ -248,6 +248,7 @@ below it is invisible to the measurement (derivation in [docs/einmessen.en.md](d
 | `sensor.oltank_inhalt` (contents) | L | contents, `device_class: volume_storage` |
 | `sensor.oltank_hochstdruck_beim_pumpen` (max pressure while pumping) | mbar (diagnostic) | highest pressure while pumping (clear line ≈ oil column) |
 | `binary_sensor.oltank_uberdruck_abbruch` (overpressure abort) | Problem | on = last measurement aborted due to overpressure (line blocked?) |
+| `sensor.oltank_messstreuung` (measurement spread) | mbar (diagnostic) | 10–90 % spread of the 15 readings of one measurement (chip noise; measured 0.04–0.07 mbar) |
 | `sensor.oltank_wlan_signal` (Wi-Fi signal) | dBm | −42 dBm on the bench, −50 to −61 dBm at the tank |
 | `sensor.oltank_laufzeit` (uptime) | s | uptime |
 | `button.oltank_neustart` (restart) | Button (diagnostic) | restart the ESP |
@@ -296,7 +297,9 @@ Short version:
 
 ## 8. Home Assistant integration
 
-- Integration: **ESPHome**, device `Öltank` (oil tank), 16 entities (table above).
+- Integration: **ESPHome**, device `Öltank` (oil tank), 17 entities (table above).
+- **Accuracy (measured 09.10.2026):** chip noise only 0.04–0.07 mbar (2–4 l), but **run to run up to ~18 l** (four measurements within 5 min: 1,528–1,546 l) – probably how exactly the air stops bubbling when the pump switches off. Therefore smooth over the last 4 measurements in HA (statistics helper, mean, max. 30 h) and attach warning thresholds to that.
+- With automatic measurement on, the box measures **right after every restart** (the pump runs briefly).
 - There is **no `ha/` folder yet** and no automations/scripts that use the device (search in HA on 08.10.2026).
 - Planned (from the notes):
   - **Low-level warning:** early warning at 1,500 l, urgent at 800 l (push notification to the household members).

@@ -26,4 +26,5 @@
 | 09.10. ~16:00 | **Dipstick not reachable.** Delivery balance instead: 1,500 l into an "empty" tank (burner had stopped), ~35 l consumption → at least ~1,465 l. Measured without correction only 36.1 cm ≈ 1,184 l → **the line end sits above the tank bottom**. |
 | 09.10. 16:06 | Firmware: adjustable correction **"line end above bottom"**, default **6.5 cm** = minimum (suction pipe assumed 3 cm above the bottom). |
 | 09.10. 16:07 | **Automatic measurement switched on.** Check run: plateau 31.10, after 10 s 30.09 mbar → **43.0 cm ≈ 1,516 l**. |
+| 09.10. 19:35 | Firmware: **median of 15 readings** + *measurement spread* sensor. Chip noise 0.04–0.07 mbar; run to run up to ~18 l (19:38–19:43: 1,538.6 / 1,545.7 / 1,529.2 / 1,528.0 l) → smoothing in HA over 4 measurements. |
 | 09.10. | **Old gauge defective:** ~800 l without pressure, just under 1,900 l when pumped, with ~1,500 l actually in the tank. |

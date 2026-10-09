@@ -218,7 +218,7 @@ Die Pumpe ist für 3–3,7 V gebaut und hängt an 5 V – deshalb die Begrenzung
 **Messablauf (Skript `messung`):** Pumpe 100 % (= 85 % PWM) für *Spülzeit* (Standard 30 s). **Während des Pumpens** wird der
 HX710B alle 0,5 s gelesen; steigt der Druck über die *Überdruck-Grenze* (Standard 150 mbar), geht die Pumpe sofort aus und die
 Messung wird verworfen (`binary_sensor.oltank_uberdruck_abbruch` = an). Füllhöhe und Inhalt werden beim Pumpen **nicht** berechnet.
-Sonst: Pumpe aus → *Beruhigungszeit* (Standard 10 s) → lesen → 2 s → nochmal lesen. Der Sensor wird **nur** in diesem Skript gelesen
+Sonst: Pumpe aus → *Beruhigungszeit* (Standard 10 s) → **15 Einzelwerte** (alle ~0,25 s) → **Median** als Messwert; die 10–90-%-Spanne der 15 Werte landet als *Messstreuung* in HA. Der Sensor wird **nur** in diesem Skript gelesen
 (`update_interval: never`). Der höchste Druck beim Pumpen landet in `sensor.oltank_hochstdruck_beim_pumpen`.
 
 **Füllhöhe** = Druck / 0,824 + *Leitungsende über Boden* (Standard 6,5 cm). Die Messleitung endet über dem Tankboden; Öl darunter
@@ -226,7 +226,7 @@ sieht die Messung nicht (Herleitung in [docs/einmessen.md](docs/einmessen.md#3-a
 
 > Die Überdruck-Abschaltung ist bisher **nie ausgelöst** worden (die Leitung ist frei) – im Ernstfall ungetestet.
 
-### Entitäten in Home Assistant (16, geprüft 09.10.2026)
+### Entitäten in Home Assistant (17, geprüft 09.10.2026)
 
 | Entität | Typ | Zweck |
 |---|---|---|
@@ -243,6 +243,7 @@ sieht die Messung nicht (Herleitung in [docs/einmessen.md](docs/einmessen.md#3-a
 | `sensor.oltank_inhalt` | L | Inhalt, `device_class: volume_storage` |
 | `sensor.oltank_hochstdruck_beim_pumpen` | mbar (Diagnose) | höchster Druck während des Pumpens (freie Leitung ≈ Ölsäule) |
 | `binary_sensor.oltank_uberdruck_abbruch` | Problem | an = letzte Messung wegen Überdruck abgebrochen (Leitung zu?) |
+| `sensor.oltank_messstreuung` | mbar (Diagnose) | 10–90-%-Spanne der 15 Einzelwerte einer Messung (Chip-Rauschen; gemessen 0,04–0,07 mbar) |
 | `sensor.oltank_wlan_signal` | dBm | am Tisch −42 dBm, am Tank −50 bis −61 dBm |
 | `sensor.oltank_laufzeit` | s | Uptime |
 | `button.oltank_neustart` | Knopf (Diagnose) | ESP neu starten |
@@ -291,7 +292,9 @@ Kurzfassung:
 
 ## 8. Home-Assistant-Anbindung
 
-- Integration: **ESPHome**, Gerät „Öltank“, 16 Entitäten (Tabelle oben).
+- Integration: **ESPHome**, Gerät „Öltank“, 17 Entitäten (Tabelle oben).
+- **Genauigkeit (09.10.2026 gemessen):** Chip-Rauschen nur 0,04–0,07 mbar (2–4 l), aber **von Lauf zu Lauf bis ~18 l** (vier Messungen in 5 min: 1.528–1.546 l) – vermutlich wie genau die Luft beim Abschalten ausperlt. Deshalb in HA über die letzten 4 Messungen glätten (statistics-Helfer, Mittelwert, max. 30 h) und Warnschwellen daran hängen.
+- Läuft die automatische Messung, misst die Box **nach jedem Neustart sofort** einmal (die Pumpe läuft dann kurz an).
 - Es gibt **noch keinen `ha/`-Ordner** und keine Automationen/Skripte, die das Gerät nutzen (Suche in HA am 08.10.2026).
 - Geplant (aus den Notizen):
   - **Warnung bei niedrigem Stand:** Vorwarnung 1.500 l, dringend 800 l (Push an die Hausbewohner).
