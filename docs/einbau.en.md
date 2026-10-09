@@ -2,17 +2,18 @@
 
 # Installation at the tank
 
-Planned: **Saturday 10.10.2026, 10:00** (Jens, first run together with Claude).
+**Done on 09.10.2026** (Jens, first run together with Claude). Results in [verlauf.en.md](verlauf.en.md).
 
 ## Prerequisite: the measuring line must be clear
 
 With the tank empty (fault D1 on 03/04.10.) the old gauge was stuck at ~800 l, even after pumping. After the delivery
-of 1,500 l on 05.10. it showed 1,900 l – so it responds again, the line is **not completely blocked**, but probably
-silted up. At the bottom of the clear cup (separator in the measuring line below the gauge) there was something dark/reddish –
+of 1,500 l on 05.10. it showed 1,900 l – from this a silted-up line was concluded.
+**Disproved on 09.10.:** the line is clear, the gauge is defective (~800 l without pressure). At the bottom of the clear cup (separator in the measuring line below the gauge) there was something dark/reddish –
 possibly oil in the measuring line (unconfirmed).
 
-**Sign of a clear line on the first run:** the pressure rises to the oil column (~40 mbar at ~50 cm) and stays there.
-**Above ~150 mbar = line blocked → abort immediately** (sensor limit 40 kPa, pump manages 80–120 kPa).
+**Sign of a clear line on the first run:** the pressure rises to the oil column and stays flat **while the pump is running**
+(09.10.: 30.95 mbar over 25 s). **Above the overpressure limit = line blocked** → since 09.10. the firmware switches the pump
+off itself (sensor limit 40 kPa, pump manages 80–120 kPa). For the first run set the limit low (e.g. 50 mbar).
 
 ### AwSV: who may do what
 
@@ -50,15 +51,18 @@ Research 08.10.2026 (not legal advice):
 2. Connect the **branch to the old gauge permanently sealed**. No check valve as a plug – it leaks (test 08.10.).
 3. **Box on the wall** (4 tabs, Ø 4.5 mm), 4 mm hose from the T branch into the right wall of the box, USB power supply ≥ 1 A.
 4. Wait ≥ 5 min (sensor warm).
-5. **First run** with caution: if the line state is unclear, *suggestion (not tested):* first set the flush time to 5 s and look at the pressure
-   before pumping for 30 s. Result above 150 mbar → abort, the line is blocked.
+5. **First run** with caution: set `number.oltank_uberdruck_grenze` (overpressure limit) to **50 mbar**, `Messung starten`, watch the
+   pressure curve in HA (`sensor.oltank_druck` is reported every 0.5 s while pumping). Flat plateau = clear; abort = line blocked or
+   high flow resistance. Afterwards set the limit back to 150 mbar.
 6. **Leak test:** set `number.oltank_beruhigungszeit` (settling time) to **60 s**, `Messung starten` ("Start measurement"). The pressure after 60 s must match the one after 10 s.
-   On the bench: 10.07 → 10.07 mbar and 10.76 / 10.74 mbar = tight.
-7. **Dipstick comparison** in the manhole (expectation see [einmessen.en.md](einmessen.en.md#3-comparison-at-the-tank-after-installation)).
+   On the bench: 10.07 → 10.07 mbar and 10.76 / 10.74 mbar = tight. At the tank (09.10.): first run **leaking**
+   (30.9 → 21.4 mbar in 10 s), after resealing 31.0 → 29.75 mbar in 60 s = tight.
+7. **Comparison**: dipstick in the manhole – or, if it cannot be reached (09.10.), via the **delivery balance**
+   (see [einmessen.en.md](einmessen.en.md#3-comparison-at-the-tank-after-installation)) and set `number.oltank_leitungsende_uber_boden`.
 8. Settling time **back to 10 s**.
 9. Only now **switch on** `switch.oltank_automatische_messung` (automatic measurement; measurement every 6 h).
 
 ## Do not touch
 
 - **AFRISO leak detector** above the gauge (tank is double-walled) – the leak lamp was off.
-- The old gauge remains in operation (read after pumping with the black knob).
+- The old gauge stays connected (read after pumping with the black knob) but reads wrong (gauge defective, ~800 l without pressure).

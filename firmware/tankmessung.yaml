@@ -10,7 +10,7 @@
 #   den Schalter „Automatische Messung“ einschalten. Die Pumpe laeuft nur ueber das Skript, mit fester Hoechstdauer.
 # Einmessen: Nullpunkt (Schlauch offen, Sensor drucklos) → roh_null; dann bekannter Druck (z. B. Wassersaeule
 #   10 cm = 9,81 mbar im Schlauch) → roh_pro_mbar. Danach per Peilstab/Liefermenge pruefen.
-# Stand 08.10.2026 — Notiz project_oeltank_fuellstandsensor
+# Stand 09.10.2026 (Ueberdruck-Abschaltung, Leitungsende-Korrektur) — Notiz project_oeltank_fuellstandsensor
 
 substitutions:
   name: tankmessung
@@ -93,6 +93,55 @@ number:
     restore_value: true
     optimistic: true
     entity_category: config
+  # 09.10.: Ueberdruck-Abschaltung — der Druck wird WAEHREND des Pumpens alle 0,5 s gelesen. Freie Leitung: Druck steigt bis
+  #   zur Oelsaeule (+ etwas Stroemungswiderstand) und bleibt dort; verstopft: steigt weiter → Pumpe aus, Messung verworfen.
+  #   Sensor endet bei 400 mbar (0–40 kPa), die Pumpe schafft gegen eine geschlossene Leitung 800–1200 mbar.
+  - platform: template
+    id: ueberdruck_grenze
+    name: Überdruck-Grenze
+    unit_of_measurement: mbar
+    min_value: 50
+    max_value: 300
+    step: 10
+    initial_value: 150
+    restore_value: true
+    optimistic: true
+    entity_category: config
+  # 09.10.: Messleitung endet UEBER dem Tankboden (Lieferbilanz: gemessen 36,1 cm = 1.184 l < 1.500 l geliefert − ~35 l Verbrauch).
+  #   Mindestwert 6,5 cm (Saugrohr 3 cm ueber Boden angenommen) = vorsichtig, Inhalt eher zu niedrig. Genau abgleichen bei der
+  #   naechsten Lieferung (Messung direkt davor + danach, bekannte Liefermenge).
+  - platform: template
+    id: leitung_ueber_boden
+    name: Leitungsende über Boden
+    unit_of_measurement: cm
+    min_value: 0
+    max_value: 30
+    step: 0.1
+    initial_value: 6.5
+    restore_value: true
+    optimistic: true
+    entity_category: config
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: "return !id(pumpt) && !isnan(id(druck_mbar).state);"
+            then:
+              - component.update: fuellhoehe
+
+globals:
+  - id: pumpt
+    type: bool
+    initial_value: "false"
+  - id: pump_ende
+    type: uint32_t
+    initial_value: "0"
+  - id: pump_max
+    type: float
+    initial_value: "0"
+  - id: abgebrochen
+    type: bool
+    initial_value: "false"
 
 switch:
   - platform: template
@@ -122,17 +171,50 @@ script:
     mode: single
     then:
       - logger.log: "Messung: Pumpe an"
+      - lambda: |-
+          id(pumpt) = true;
+          id(abgebrochen) = false;
+          id(pump_max) = 0;
+          id(pump_ende) = millis() + (uint32_t) (id(spuelzeit).state * 1000);
       - fan.turn_on:
           id: pumpe
           speed: 100
-      - delay: !lambda "return (uint32_t) (id(spuelzeit).state * 1000);"
+      # Waehrend des Pumpens mitlesen; Fuellhoehe/Inhalt werden dabei NICHT berechnet (pumpt = true)
+      - while:
+          condition:
+            lambda: "return id(pumpt) && (int32_t) (id(pump_ende) - millis()) > 0;"
+          then:
+            - delay: 500ms
+            - component.update: druck_roh
+            - lambda: |-
+                float p = id(druck_mbar).state;
+                if (!isnan(p) && p > id(pump_max)) id(pump_max) = p;
+                if (!isnan(p) && p > id(ueberdruck_grenze).state) {
+                  id(pumpe).turn_off().perform();
+                  id(abgebrochen) = true;
+                  id(pumpt) = false;
+                  ESP_LOGW("messung", "Ueberdruck %.1f mbar > Grenze %.0f mbar - Pumpe aus, Messung verworfen",
+                           p, id(ueberdruck_grenze).state);
+                }
       - fan.turn_off: pumpe
-      - logger.log: "Messung: Pumpe aus, warte auf Beruhigung"
-      - delay: !lambda "return (uint32_t) (id(beruhigungszeit).state * 1000);"
-      - component.update: druck_roh
-      - delay: 2s
-      - component.update: druck_roh
-      - logger.log: "Messung: fertig"
+      - lambda: |-
+          id(pumpt) = false;
+          id(pumpdruck_max).publish_state(id(pump_max));
+          id(ueberdruck).publish_state(id(abgebrochen));
+      - if:
+          condition:
+            lambda: "return id(abgebrochen);"
+          then:
+            - logger.log:
+                level: WARN
+                format: "Messung abgebrochen (Ueberdruck) - Leitung verstopft?"
+          else:
+            - logger.log: "Messung: Pumpe aus, warte auf Beruhigung"
+            - delay: !lambda "return (uint32_t) (id(beruhigungszeit).state * 1000);"
+            - component.update: druck_roh
+            - delay: 2s
+            - component.update: druck_roh
+            - logger.log: "Messung: fertig"
 
 interval:
   - interval: 6h
@@ -144,6 +226,12 @@ interval:
             - script.execute: messung
 
 # ---------------- Sensoren ----------------
+binary_sensor:
+  - platform: template
+    id: ueberdruck
+    name: Überdruck-Abbruch
+    device_class: problem
+
 sensor:
   - platform: hx711          # liest auch HX710B (Gain 128)
     id: druck_roh
@@ -170,7 +258,11 @@ sensor:
       return (id(druck_roh).state - ${roh_null}) / ${roh_pro_mbar};
     on_value:
       then:
-        - component.update: fuellhoehe
+        - if:
+            condition:
+              lambda: "return !id(pumpt);"
+            then:
+              - component.update: fuellhoehe
 
   - platform: template
     id: fuellhoehe
@@ -184,6 +276,7 @@ sensor:
       if (isnan(p)) return NAN;
       float h = p / ${oel_mbar_pro_cm};
       if (h < 0) h = 0;
+      h += id(leitung_ueber_boden).state;   // Oel unter dem Leitungsende sieht die Messung nicht
       if (h > 2 * ${tank_radius_dm} * 10) h = 2 * ${tank_radius_dm} * 10;
       return h;
     on_value:
@@ -206,6 +299,16 @@ sensor:
       float a = r * r * acosf((r - h) / r) - (r - h) * sqrtf(fmaxf(0, 2 * r * h - h * h));
       float voll = M_PI * r * r * L;
       return a * L * (${tank_nenn_l} / voll);
+
+  - platform: template
+    id: pumpdruck_max
+    name: Höchstdruck beim Pumpen
+    unit_of_measurement: mbar
+    device_class: pressure
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: never
+    entity_category: diagnostic
 
   - platform: wifi_signal
     name: WLAN-Signal
