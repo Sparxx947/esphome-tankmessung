@@ -26,4 +26,5 @@
 | 09.10. ~16:00 | **Peilstab nicht erreichbar.** Lieferbilanz statt Peilung: 1.500 l in einen „leeren“ Tank (Brenner stand), ~35 l Verbrauch → mindestens ~1.465 l. Gemessen ohne Korrektur nur 36,1 cm ≈ 1.184 l → **das Leitungsende sitzt über dem Tankboden**. |
 | 09.10. 16:06 | Firmware: einstellbare Korrektur **„Leitungsende über Boden“**, Standard **6,5 cm** = Mindestwert (Saugrohr 3 cm über Boden angenommen). |
 | 09.10. 16:07 | **Automatische Messung eingeschaltet.** Kontrolllauf: Plateau 31,10, nach 10 s 30,09 mbar → **43,0 cm ≈ 1.516 l**. |
+| 09.10. 19:35 | Firmware: **Median aus 15 Einzelwerten** + Sensor *Messstreuung*. Chip-Rauschen 0,04–0,07 mbar; Lauf-zu-Lauf aber bis ~18 l (19:38–19:43: 1.538,6 / 1.545,7 / 1.529,2 / 1.528,0 l) → Glättung in HA über 4 Messungen. |
 | 09.10. | **Alte Anzeige defekt:** drucklos ~800 l, gepumpt knapp 1.900 l bei tatsächlich ~1.500 l. |

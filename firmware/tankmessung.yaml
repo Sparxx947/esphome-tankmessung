@@ -10,7 +10,7 @@
 #   den Schalter „Automatische Messung“ einschalten. Die Pumpe laeuft nur ueber das Skript, mit fester Hoechstdauer.
 # Einmessen: Nullpunkt (Schlauch offen, Sensor drucklos) → roh_null; dann bekannter Druck (z. B. Wassersaeule
 #   10 cm = 9,81 mbar im Schlauch) → roh_pro_mbar. Danach per Peilstab/Liefermenge pruefen.
-# Stand 09.10.2026 (Ueberdruck-Abschaltung, Leitungsende-Korrektur) — Notiz project_oeltank_fuellstandsensor
+# Stand 09.10.2026 (Ueberdruck-Abschaltung, Leitungsende-Korrektur, Median aus 15 Werten) — Notiz project_oeltank_fuellstandsensor
 
 substitutions:
   name: tankmessung
@@ -142,6 +142,12 @@ globals:
   - id: abgebrochen
     type: bool
     initial_value: "false"
+  # 09.10. abends: Median aus 15 Einzelwerten statt 2 Einzelablesungen (Jens: „besser kalibrieren“ → Streuung senken)
+  - id: sammeln
+    type: bool
+    initial_value: "false"
+  - id: rohwerte
+    type: std::vector<float>
 
 switch:
   - platform: template
@@ -211,9 +217,24 @@ script:
           else:
             - logger.log: "Messung: Pumpe aus, warte auf Beruhigung"
             - delay: !lambda "return (uint32_t) (id(beruhigungszeit).state * 1000);"
-            - component.update: druck_roh
-            - delay: 2s
-            - component.update: druck_roh
+            - lambda: |-
+                id(rohwerte).clear();
+                id(sammeln) = true;
+            - repeat:
+                count: 15
+                then:
+                  - component.update: druck_roh
+                  - delay: 150ms
+            - lambda: |-
+                id(sammeln) = false;
+                auto &v = id(rohwerte);
+                if (v.size() < 5) { ESP_LOGW("messung", "nur %d Werte - Messung verworfen", (int) v.size()); return; }
+                std::sort(v.begin(), v.end());
+                float median = v[v.size() / 2];
+                float streuung = (v[v.size() * 9 / 10] - v[v.size() / 10]) / ${roh_pro_mbar};   // 10-90-%-Spanne in mbar
+                ESP_LOGI("messung", "Median aus %d Werten, Streuung %.2f mbar", (int) v.size(), streuung);
+                id(messstreuung).publish_state(streuung);
+                id(druck_roh).publish_state(median);
             - logger.log: "Messung: fertig"
 
 interval:
@@ -243,7 +264,13 @@ sensor:
     entity_category: diagnostic
     on_value:
       then:
-        - component.update: druck_mbar
+        - if:
+            condition:
+              lambda: "return id(sammeln);"
+            then:
+              - lambda: "if (!isnan(x)) id(rohwerte).push_back(x);"
+            else:
+              - component.update: druck_mbar
 
   - platform: template
     id: druck_mbar
@@ -307,6 +334,14 @@ sensor:
     device_class: pressure
     state_class: measurement
     accuracy_decimals: 1
+    update_interval: never
+    entity_category: diagnostic
+
+  - platform: template
+    id: messstreuung
+    name: Messstreuung
+    unit_of_measurement: mbar
+    accuracy_decimals: 2
     update_interval: never
     entity_category: diagnostic
 
