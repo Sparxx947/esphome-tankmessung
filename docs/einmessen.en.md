@@ -62,18 +62,44 @@ actual tank dimensions and the oil density. Therefore check against an independe
    | 1,900 l | 50.6 cm | 41.7 mbar |
 
    Since then the burner has been running again – so the current level is somewhat lower.
-   Which interpretation is correct is **unresolved**: probably (unconfirmed) ~400 l remained below the suction pipe, contents after delivery
-   ≈ 1,900 l, and the old gauge previously read ~400 l too high because of sludge/water at the bottom.
+   **Resolved on 09.10.:** the 1,900 l were wrong – the old gauge is defective (~800 l without pressure).
 3. If the dipstick reading differs:
-   - **constant offset in cm** → line end does not sit on the bottom, or sludge; correction as a height offset (not yet provided
-     in the firmware – would have to be added).
+   - **constant offset in cm** → line end does not sit on the bottom, or sludge; correction via
+     `number.oltank_leitungsende_uber_boden` (in the firmware since 09.10., added to the fill height).
    - **proportional deviation** → oil density/tank dimensions; adjust `oel_mbar_pro_cm`.
 4. Later, additionally cross-check with every **delivered quantity** (increase in litres before/after the delivery).
+
+### Comparison without a dipstick: delivery balance (09.10.2026)
+
+The dipstick could not be reached. Instead:
+
+- 05.10.: **1,500 l** into an "empty" tank (the burner got no more oil = level at the end of the suction pipe).
+- Consumption until 09.10. ~35 l (estimated, ~7 l/day in October) → now **at least ~1,465 l** + the remainder below the suction pipe.
+- Measured **without** correction: 30.95–31.1 mbar while pumping, ≈ 30 mbar after 10 s → 36.1 cm ≈ **1,184 l** – less than
+  the delivery alone. → The line end sits **above the tank bottom**.
+
+The remainder below the suction pipe stays unknown. Depending on it:
+
+| Suction pipe ends … above bottom | Remainder before delivery | Contents now | Line end above bottom |
+|---|---|---|---|
+| 3 cm | 30 l | ≈ 1,495 l | **6.5 cm** (set) |
+| 5 cm | 65 l | ≈ 1,530 l | 7.2 cm |
+| 10 cm | 182 l | ≈ 1,647 l | 9.6 cm |
+| 15 cm | 331 l | ≈ 1,796 l | 12.5 cm |
+| 20 cm | 505 l | ≈ 1,970 l | 15.8 cm |
+
+The **minimum of 6.5 cm** is set: contents are shown rather too low – the safe side for warnings.
+Check run 09.10. 16:07: **43.0 cm ≈ 1,516 l**.
+
+**Exact comparison at the next delivery:** one measurement directly before and one directly after, quantity from the delivery
+note. Because the tank is round, each centimetre corresponds to a different number of litres depending on the height – two
+heights plus the known litre difference give the correction unambiguously.
 
 ## 4. Dipstick table (from the firmware formula)
 
 Calculated with r = 8 dm, L = 37.5 dm, scaled to 7,000 l, 0.824 mbar/cm. The expected raw value applies to the
-calibration of 08.10.
+calibration of 08.10. Pressure and raw value apply **without** the line-end correction; with the correction, a pressure
+belongs to the fill height "table height + correction".
 
 | Fill height | Contents | Pressure | Raw value (expected) |
 |---|---|---|---|
@@ -103,4 +129,6 @@ Warning thresholds (planned): 1,500 l ≈ 42.7 cm, 800 l ≈ 27.5 cm.
 |---|---|---|
 | `number.oltank_spulzeit_pumpe` (pump flush time) | 30 s | 30 s |
 | `number.oltank_beruhigungszeit` (settling time) | **10 s** | 60 s |
-| `switch.oltank_automatische_messung` (automatic measurement) | **on** only after the comparison at the tank | off |
+| `number.oltank_uberdruck_grenze` (overpressure limit) | 150 mbar | 150 mbar (first run on a new line: 50 mbar) |
+| `number.oltank_leitungsende_uber_boden` (line end above bottom) | 6.5 cm (provisional, see above) | – |
+| `switch.oltank_automatische_messung` (automatic measurement) | **on** only after the comparison at the tank (on since 09.10.) | off |

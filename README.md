@@ -5,8 +5,8 @@
 ESP32 + ESPHome misst den Füllstand des Heizöl-Erdtanks über die **vorhandene pneumatische Messleitung**
 und meldet Druck, Füllhöhe und Literinhalt an Home Assistant (Gerät „Öltank“).
 
-> Stand: **08.10.2026 abends**. Am Tisch eingemessen, Box gedruckt, bestückt und dicht.
-> Der Einbau am Tank ist für das Wochenende 10./11.10.2026 geplant und hängt daran, dass die Messleitung frei ist.
+> Stand: **09.10.2026**. Am Tank eingebaut und in Betrieb: Messleitung frei, dicht, automatische Messung alle 6 h an.
+> Füllstand vorläufig über die Lieferbilanz abgeglichen (Peilstab nicht erreichbar); genauer Abgleich bei der nächsten Lieferung.
 
 > **Nachbauen?** Die Werte in diesem Repo gehören zu *diesem* Tank und *diesem* Sensor:
 > - Eigene `secrets.yaml` aus [`firmware/secrets.example.yaml`](firmware/secrets.example.yaml) anlegen (WLAN, API-Schlüssel, Passwort des Fallback-Hotspots).
@@ -22,16 +22,16 @@ und meldet Druck, Füllhöhe und Literinhalt an Home Assistant (Gerät „Öltan
 | **Was** | Füllstand des Heizöltanks (Druck in mbar → Füllhöhe in cm → Inhalt in Litern) |
 | **Tank** | Stahl-Erdtank, draußen unterirdisch, **7.000 l**, DIN 6608-D, Baujahr 1967, doppelwandig mit Leckanzeiger. Maße laut DIN-6608-Tabelle (heutige Norm): **Ø 1.600 mm × 3.750 mm** – die Normfassung von 1967 ist nicht gegengeprüft. |
 | **Wo** | Heizungskeller, an der Wand neben der alten pneumatischen Anzeige (Skala 0–7.000 l mit Zugpumpe). Abgriff: senkrechtes Kupferstück (6 mm) zwischen Abscheiderbecher und alter Anzeige. |
-| **Prinzip** | Wie die alte Anzeige („Vor dem Ablesen pumpen“): Eine Mini-Pumpe drückt Luft in die Messleitung, bis sie am Tankboden ausperlt. Nach dem Abschalten hält ein Rückschlagventil die Luft in der Leitung; der Restdruck entspricht der Ölsäule über dem Leitungsende. Ein Drucksensor (HX710B, 0–40 kPa) misst ihn. |
+| **Prinzip** | Wie die alte Anzeige („Vor dem Ablesen pumpen“): Eine Mini-Pumpe drückt Luft in die Messleitung, bis sie am Leitungsende ausperlt. Nach dem Abschalten hält ein Rückschlagventil die Luft in der Leitung; der Restdruck entspricht der Ölsäule über dem Leitungsende. Ein Drucksensor (HX710B, 0–40 kPa) misst ihn – auch **während** des Pumpens, mit Überdruck-Abschaltung. Das Leitungsende sitzt über dem Tankboden; die Höhe darunter wird als einstellbare Korrektur addiert. |
 | **Physik** | Heizöl EL ρ ≈ 0,84 kg/l → **1 cm Öl ≈ 0,824 mbar**, voller Tank (160 cm) ≈ **132 mbar**, 1 m Öl ≈ 82 mbar. |
 | **Volumen** | Liegender Zylinder (Kreisabschnitt), Böden vernachlässigt, auf 7.000 l skaliert (Formel in [docs/einmessen.md](docs/einmessen.md)). |
 
-Die alte Anzeige bleibt erhalten und funktionsfähig. Ergänzend gibt es das Projekt „Heizung über Optolink“
+Die alte Anzeige bleibt angeschlossen, ist aber **defekt** (zeigt drucklos ~800 l, gepumpt knapp 1.900 l bei tatsächlich ~1.500 l). Ergänzend gibt es das Projekt „Heizung über Optolink“
 (zweiter ESP32, `heizung-optolink`, .193) für Brennerstunden und Störmeldungen – nicht Teil dieses Repos.
 
 ---
 
-## 2. Status (Stand 08.10.2026)
+## 2. Status (Stand 09.10.2026)
 
 | Bereich | Status | Datum / Hinweis |
 |---|---|---|
@@ -43,10 +43,12 @@ Die alte Anzeige bleibt erhalten und funktionsfähig. Ergänzend gibt es das Pro
 | Erster Pumpentest | ✅ läuft (nach Nachklemmen) | 08.10.2026 15:27 |
 | **Einmessen am Tisch** (Wassersäule 10 cm) | ✅ fertig | 08.10.2026 16:25, Gegenprobe 16:27 |
 | Funktion + Dichtprobe in der Box (60 s) | ✅ dicht (2 von 3 Läufen, ein Abfall ungeklärt) | 08.10.2026 18:07–18:15 |
-| Messing-T 6×4×6 | ⏳ nachbestellt | 08.10.2026 (erste Lieferung wurde nicht versandt) |
-| **Messleitung frei?** | ❌ offen – vermutlich verschlammt | Freiblasen: Fachbetrieb empfohlen (AwSV, siehe [docs/einbau.md](docs/einbau.md#awsv-wer-darf-was)) |
-| Einbau am Tank, erster Lauf, Peilstab-Abgleich | ⏳ geplant | Termin Sa 10.10.2026 10:00 (Jens, zusammen mit Claude) |
-| Automatische Messung (alle 6 h) | ⏸ aus | erst nach Einbau + Abgleich einschalten |
+| Messing-T 6×4×6 | ✅ geliefert, eingebaut | 09.10.2026 |
+| **Messleitung frei?** | ✅ frei | 09.10.2026: Druck bleibt beim Pumpen flach auf der Ölsäule (Luft perlt aus) – Freiblasen war nicht nötig |
+| Einbau am Tank, erster Lauf, Dichtprobe | ✅ fertig | 09.10.2026 15:44–16:07 (ein Leck an den neuen Anschlüssen gefunden und abgedichtet) |
+| Überdruck-Abschaltung + Leitungsende-Korrektur (Firmware) | ✅ geflasht | 09.10.2026 15:52 / 16:06 – Abschaltung **noch nie ausgelöst**, im Ernstfall ungetestet |
+| Abgleich Füllstand | ⚠️ vorläufig | Peilstab nicht erreichbar → Lieferbilanz, Korrektur 6,5 cm (Mindestwert); genau bei der nächsten Lieferung |
+| Automatische Messung (alle 6 h) | ✅ an | seit 09.10.2026 16:07 |
 | HA-Automationen (Warnung, Prognose) | ❌ offen | noch keine angelegt (geprüft 08.10.: keine Automation/kein Skript nutzt das Gerät) |
 
 ---
@@ -73,12 +75,12 @@ Der erste Warenkorb für die Pneumatik (8 Artikel, 54,62 €) wurde am 04.10.202
 
 | Teil | Menge | Bezeichnung / Typ | Bezugsquelle, ASIN, Preis | Status |
 |---|---|---|---|---|
-| T-Stück Messleitung | 1 | Messing-Schlauchtülle-T **6 × 4 × 6 mm** (6 mm Durchgang, 4 mm Abzweig) | Amazon B0GHMXRYNT, 5,99 € (2 Stück) | ⏳ erste Bestellung 04.10. nicht versandt; **nachbestellt 08.10.** |
+| T-Stück Messleitung | 1 | Messing-Schlauchtülle-T **6 × 4 × 6 mm** (6 mm Durchgang, 4 mm Abzweig) | Amazon B0GHMXRYNT, 5,99 € (2 Stück) | ✅ eingebaut 09.10. |
 | Silikonschlauch 6 mm innen | 1 m | Silikonschlauch 6 mm ID (auf die durchtrennte 6-mm-Kupferleitung) | Amazon B0CYGQD96H, 5,59 € | bestellt 04.10. (Lieferung nicht ausdrücklich notiert) |
 | Schlauchschellen | 10 | Edelstahl-Schlauchschellen 6–12 mm (Leryati) | Amazon B0C24792WR, 4,99 € | bestellt 04.10. (Lieferung nicht ausdrücklich notiert) |
 | Aquarium-Set | 1 | 48-teilig: 6 m Silikonschlauch 4 mm, Rückschlagventile, T- und L-Verbinder | Amazon B0C2PYBDGJ, 9,99 € | ✅ vorhanden, in der Box verbaut (Rückschlagventil + T) |
 | Silikonschlauch 2,5 mm | 1 m | Silikonschlauch 2,5 mm ID × 4 mm AD – passt auf den Sensorstutzen und stramm in den 4-mm-Aquariumschlauch | Amazon B0CXPW74GZ, 4,19 € | bestellt 04.10. (Lieferung nicht ausdrücklich notiert) |
-| Messleitung | – | vorhandene Kupferleitung **6 mm außen** (Jens gemessen 6,1 mm) vom Tankboden in den Keller | Bestand | ⚠️ vermutlich verschlammt |
+| Messleitung | – | vorhandene Kupferleitung **6 mm außen** (Jens gemessen 6,1 mm) vom Tank in den Keller | Bestand | ✅ frei (09.10.) |
 
 Fallback, falls das Messing-T wieder ausfällt: Steckverbinder-T 6-4-6 POM (B0GLGCTVRH) oder PA (B0CB8V2NXD).
 Ungeprüft, ob Steckverbinder auf 6,1-mm-Kupfer dicht und zugfest halten – vor dem Einbau Zugtest + Druckhaltetest.
@@ -97,7 +99,7 @@ Ungeprüft, ob Steckverbinder auf 6,1-mm-Kupfer dicht und zugfest halten – vor
 ### Werkzeug / Hilfsmittel
 
 Messschieber, Multimeter, Lötkolben, 3D-Drucker, Glas mit Wasser + Lineal (Einmessen),
-Peilstab für den Domschacht (ggf. mit Wasserfindungspaste) – **Peilstab noch offen**.
+Peilstab für den Domschacht (ggf. mit Wasserfindungspaste) – **am 09.10. nicht erreichbar**, Abgleich daher über die Lieferbilanz.
 
 ---
 
@@ -185,7 +187,7 @@ Quelle: [`gehaeuse/tankmessung-gehaeuse.scad`](gehaeuse/tankmessung-gehaeuse.sca
 
 ## 6. Firmware
 
-Datei: [`firmware/tankmessung.yaml`](firmware/tankmessung.yaml) – Stand aus dem ESPHome Builder (08.10.2026).
+Datei: [`firmware/tankmessung.yaml`](firmware/tankmessung.yaml) – Stand aus dem ESPHome Builder (09.10.2026).
 **Die Fassung im ESPHome Builder ist führend**; Änderungen hier nachziehen.
 
 | Einstellung | Wert |
@@ -213,24 +215,35 @@ Datei: [`firmware/tankmessung.yaml`](firmware/tankmessung.yaml) – Stand aus de
 Die Pumpe ist für 3–3,7 V gebaut und hängt an 5 V – deshalb die Begrenzung.
 **Sicherung:** Skript `pumpe_sicherung` schaltet die Pumpe nach **60 s** immer ab, auch bei Handbetrieb.
 
-**Messablauf (Skript `messung`):** Pumpe 100 % (= 85 % PWM) für *Spülzeit* (Standard 30 s) → aus →
-*Beruhigungszeit* (Standard 10 s) → HX710B lesen → 2 s → nochmal lesen. Der Sensor wird **nur** in diesem Skript gelesen
-(`update_interval: never`).
+**Messablauf (Skript `messung`):** Pumpe 100 % (= 85 % PWM) für *Spülzeit* (Standard 30 s). **Während des Pumpens** wird der
+HX710B alle 0,5 s gelesen; steigt der Druck über die *Überdruck-Grenze* (Standard 150 mbar), geht die Pumpe sofort aus und die
+Messung wird verworfen (`binary_sensor.oltank_uberdruck_abbruch` = an). Füllhöhe und Inhalt werden beim Pumpen **nicht** berechnet.
+Sonst: Pumpe aus → *Beruhigungszeit* (Standard 10 s) → lesen → 2 s → nochmal lesen. Der Sensor wird **nur** in diesem Skript gelesen
+(`update_interval: never`). Der höchste Druck beim Pumpen landet in `sensor.oltank_hochstdruck_beim_pumpen`.
 
-### Entitäten in Home Assistant (12, geprüft 08.10.2026)
+**Füllhöhe** = Druck / 0,824 + *Leitungsende über Boden* (Standard 6,5 cm). Die Messleitung endet über dem Tankboden; Öl darunter
+sieht die Messung nicht (Herleitung in [docs/einmessen.md](docs/einmessen.md#3-abgleich-am-tank-nach-dem-einbau)).
+
+> Die Überdruck-Abschaltung ist bisher **nie ausgelöst** worden (die Leitung ist frei) – im Ernstfall ungetestet.
+
+### Entitäten in Home Assistant (16, geprüft 09.10.2026)
 
 | Entität | Typ | Zweck |
 |---|---|---|
 | `button.oltank_messung_starten` | Knopf | eine Messung auslösen |
-| `switch.oltank_automatische_messung` | Schalter (Konfig.) | Messung alle 6 h – **ab Werk AUS** (`RESTORE_DEFAULT_OFF`) |
+| `switch.oltank_automatische_messung` | Schalter (Konfig.) | Messung alle 6 h – **ab Werk AUS** (`RESTORE_DEFAULT_OFF`), hier an seit 09.10. |
 | `number.oltank_spulzeit_pumpe` | Zahl 5–60 s | Pumpdauer je Messung (30 s) |
 | `number.oltank_beruhigungszeit` | Zahl 2–60 s | Wartezeit vor dem Lesen (10 s; für Dichtproben 60 s) |
+| `number.oltank_uberdruck_grenze` | Zahl 50–300 mbar | Überdruck-Abschaltung beim Pumpen (150 mbar) |
+| `number.oltank_leitungsende_uber_boden` | Zahl 0–30 cm | Korrektur: Höhe des Leitungsendes über dem Tankboden (6,5 cm) |
 | `fan.oltank_pumpe` | Lüfter (Diagnose) | Pumpe von Hand, max. 60 s |
 | `sensor.oltank_druck_rohwert` | Diagnose | HX710B-Rohwert (für das Einmessen) |
 | `sensor.oltank_druck` | mbar | Druck = Ölsäule |
-| `sensor.oltank_fullhohe` | cm | Füllhöhe (begrenzt auf 0–160 cm) |
+| `sensor.oltank_fullhohe` | cm | Füllhöhe inkl. Korrektur (begrenzt auf 0–160 cm) |
 | `sensor.oltank_inhalt` | L | Inhalt, `device_class: volume_storage` |
-| `sensor.oltank_wlan_signal` | dBm | am 08.10. −42 dBm |
+| `sensor.oltank_hochstdruck_beim_pumpen` | mbar (Diagnose) | höchster Druck während des Pumpens (freie Leitung ≈ Ölsäule) |
+| `binary_sensor.oltank_uberdruck_abbruch` | Problem | an = letzte Messung wegen Überdruck abgebrochen (Leitung zu?) |
+| `sensor.oltank_wlan_signal` | dBm | am Tisch −42 dBm, am Tank −50 bis −61 dBm |
 | `sensor.oltank_laufzeit` | s | Uptime |
 | `button.oltank_neustart` | Knopf (Diagnose) | ESP neu starten |
 
@@ -262,7 +275,7 @@ Die Pumpe ist für 3–3,7 V gebaut und hängt an 5 V – deshalb die Begrenzung
 | [docs/einmessen.md](docs/einmessen.md) | **Einmessen/Kalibrieren** mit Wassersäule, Formeln, Peiltabelle, Abgleich am Tank |
 | [docs/einbau.md](docs/einbau.md) | Einbau am Tank, Freiblasen der Messleitung, AwSV, erster Lauf, Dichtprobe |
 | [docs/fehlersuche.md](docs/fehlersuche.md) | bekannte Fehlerbilder mit Ursache und Lösung |
-| [docs/verlauf.md](docs/verlauf.md) | Projektverlauf 04.–08.10.2026 |
+| [docs/verlauf.md](docs/verlauf.md) | Projektverlauf 04.–09.10.2026 |
 
 Kurzfassung:
 
@@ -270,15 +283,15 @@ Kurzfassung:
 2. **Inbetriebnahme:** USB-Netzteil an, Gerät in HA online? „Messung starten“ mit offenem Schlauch → Pumpe läuft, bläst.
 3. **Einmessen:** Nullpunkt bei offenem Schlauch (Sensor warm, ≥ 5 min nach Einschalten), dann 10 cm Wassersäule = 9,81 mbar →
    `roh_pro_mbar = (roh_10cm − roh_null) / 9,81`. Gegenprobe muss ~10 mbar ergeben.
-4. **Einbau:** nur an eine **freie** Messleitung; Abzweig zur alten Anzeige dauerhaft dicht.
-5. **Test:** erster Lauf mit 60 s Beruhigungszeit (Dichtprobe), dann Peilstab-Abgleich, dann Beruhigungszeit 10 s.
+4. **Einbau:** Abzweig zur alten Anzeige dauerhaft dicht. Ob die Leitung frei ist, zeigt der erste Lauf (Überdruck-Grenze vorher niedrig, z. B. 50 mbar).
+5. **Test:** erster Lauf mit 60 s Beruhigungszeit (Dichtprobe), dann Abgleich (Peilstab oder Lieferbilanz), dann Beruhigungszeit 10 s.
 6. Erst dann **„Automatische Messung“** einschalten.
 
 ---
 
 ## 8. Home-Assistant-Anbindung
 
-- Integration: **ESPHome**, Gerät „Öltank“, 12 Entitäten (Tabelle oben).
+- Integration: **ESPHome**, Gerät „Öltank“, 16 Entitäten (Tabelle oben).
 - Es gibt **noch keinen `ha/`-Ordner** und keine Automationen/Skripte, die das Gerät nutzen (Suche in HA am 08.10.2026).
 - Geplant (aus den Notizen):
   - **Warnung bei niedrigem Stand:** Vorwarnung 1.500 l, dringend 800 l (Push an die Hausbewohner).
@@ -292,15 +305,11 @@ Kurzfassung:
 
 | Punkt | Wer | Termin |
 |---|---|---|
-| Messing-T 6×4×6 (nachbestellt) abwarten | Jens | Lieferung offen |
-| **Messleitung freiblasen** – Fachbetrieb (empfohlen, mit Tankreinigung + Grenzwertgeber-Tausch) oder selbst (rechtlich unklar, siehe AwSV) | Jens entscheidet | vor dem Einbau |
-| Einbau am Tank, erster Lauf + 60-s-Dichtprobe, Peilstab-Abgleich | Jens + Claude | **Sa 10.10.2026 10:00** |
-| Peilung im Domschacht (Erwartung bei 1.900 l ≈ 50,6 cm) | Jens | beim Einbau |
-| Beruhigungszeit nach dem Test zurück auf 10 s | – | nach dem Einbau |
-| Automatische Messung einschalten | – | nach dem Abgleich |
+| **Genauer Abgleich der Leitungsende-Korrektur:** direkt vor und nach der nächsten Lieferung je eine Messung, Liefermenge vom Lieferschein → Korrektur eindeutig | Jens + Claude | nächste Öllieferung |
+| Überdruck-Abschaltung im Ernstfall noch ungetestet | – | beobachten |
+| Alte Anzeige defekt (drucklos ~800 l) – behalten oder Abzweig dicht verschließen | Jens | – |
 | HA: Warnung 1.500 / 800 l, Prognose | Claude | danach |
 | D4184-Fehlkauf stornieren oder behalten | Jens | – |
-| Ungeklärter Druckabfall im 2. Dichtlauf (18:07) beobachten | – | beim Einbau |
 | Grenzwertgeber mit Lochhülse: jährliche Kontrolle durch Fachbetrieb oder Tausch gegen Schlitzhülse (TÜV-Hinweis 2019 + 2024) | Jens | mit der Tankreinigung |
 | Nächste AwSV-Prüfung | Jens | 01/2029 (anmelden ab 11/2028) |
 
@@ -320,7 +329,7 @@ esphome-tankmessung/
 │   ├── fehlersuche.md                Fehlerbilder
 │   └── verlauf.md                    Chronik
 ├── firmware/
-│   ├── tankmessung.yaml              ESPHome-Konfiguration (Stand Builder 08.10.2026)
+│   ├── tankmessung.yaml              ESPHome-Konfiguration (Stand Builder 09.10.2026)
 │   └── secrets.example.yaml          Vorlage, keine echten Werte
 ├── gehaeuse/
 │   ├── tankmessung-gehaeuse.scad     OpenSCAD-Quelle (Box + Deckel)

@@ -5,8 +5,8 @@
 An ESP32 running ESPHome measures the level of the underground heating-oil tank via the **existing pneumatic measuring line**
 and reports pressure, fill height and contents in litres to Home Assistant (device `Öltank` – "oil tank").
 
-> Status: **08.10.2026, evening**. Calibrated on the bench, box printed, assembled and leak-tight.
-> Installation at the tank is planned for the weekend of 10/11.10.2026 and depends on the measuring line being clear.
+> Status: **09.10.2026**. Installed at the tank and in operation: measuring line clear, leak-tight, automatic measurement every 6 h on.
+> Level provisionally matched via the delivery balance (dipstick not reachable); exact comparison at the next delivery.
 
 > **Rebuilding this project?** The values in this repo belong to *this* tank and *this* sensor:
 > - Create your own `secrets.yaml` from [`firmware/secrets.example.yaml`](firmware/secrets.example.yaml) (Wi-Fi, API key, fallback hotspot password).
@@ -22,16 +22,16 @@ and reports pressure, fill height and contents in litres to Home Assistant (devi
 | **What** | Level of the heating-oil tank (pressure in mbar → fill height in cm → contents in litres) |
 | **Tank** | Steel underground tank, outdoors, **7,000 l**, DIN 6608-D, built 1967, double-walled with leak detector. Dimensions according to the DIN 6608 table (current standard): **Ø 1,600 mm × 3,750 mm** – the 1967 edition of the standard has not been cross-checked. |
 | **Where** | Boiler room, on the wall next to the old pneumatic gauge (scale 0–7,000 l with hand pump). Tap point: vertical copper section (6 mm) between the separator cup and the old gauge. |
-| **Principle** | Like the old gauge ("pump before reading"): a mini pump pushes air into the measuring line until it bubbles out at the bottom of the tank. After switching off, a check valve holds the air in the line; the remaining pressure equals the oil column above the end of the line. A pressure sensor (HX710B, 0–40 kPa) measures it. |
+| **Principle** | Like the old gauge ("pump before reading"): a mini pump pushes air into the measuring line until it bubbles out at the end of the line. After switching off, a check valve holds the air in the line; the remaining pressure equals the oil column above the end of the line. A pressure sensor (HX710B, 0–40 kPa) measures it – also **while** pumping, with an overpressure cut-off. The end of the line sits above the tank bottom; the height below it is added as an adjustable correction. |
 | **Physics** | Heating oil EL ρ ≈ 0.84 kg/l → **1 cm oil ≈ 0.824 mbar**, full tank (160 cm) ≈ **132 mbar**, 1 m oil ≈ 82 mbar. |
 | **Volume** | Horizontal cylinder (circular segment), dished ends neglected, scaled to 7,000 l (formula in [docs/einmessen.en.md](docs/einmessen.en.md)). |
 
-The old gauge stays in place and remains functional. In addition there is the project "Heating via Optolink"
+The old gauge stays connected but is **defective** (shows ~800 l without pressure, just under 1,900 l when pumped, with ~1,500 l actually in the tank). In addition there is the project "Heating via Optolink"
 (second ESP32, `heizung-optolink`, .193) for burner hours and fault messages – not part of this repo.
 
 ---
 
-## 2. Status (as of 08.10.2026)
+## 2. Status (as of 09.10.2026)
 
 | Area | Status | Date / note |
 |---|---|---|
@@ -43,10 +43,12 @@ The old gauge stays in place and remains functional. In addition there is the pr
 | First pump test | ✅ runs (after re-tightening terminals) | 08.10.2026 15:27 |
 | **Bench calibration** (water column 10 cm) | ✅ done | 08.10.2026 16:25, cross-check 16:27 |
 | Function + leak test in the box (60 s) | ✅ tight (2 of 3 runs, one drop unexplained) | 08.10.2026 18:07–18:15 |
-| Brass T 6×4×6 | ⏳ reordered | 08.10.2026 (first delivery was not shipped) |
-| **Measuring line clear?** | ❌ open – probably silted up | Blowing it clear: specialist company recommended (AwSV, see [docs/einbau.en.md](docs/einbau.en.md#awsv-who-may-do-what)) |
-| Installation at the tank, first run, dipstick comparison | ⏳ planned | Appointment Sat 10.10.2026 10:00 (Jens, together with Claude) |
-| Automatic measurement (every 6 h) | ⏸ off | switch on only after installation + comparison |
+| Brass T 6×4×6 | ✅ delivered, installed | 09.10.2026 |
+| **Measuring line clear?** | ✅ clear | 09.10.2026: pressure stays flat at the oil column while pumping (air bubbles out) – blowing clear was not needed |
+| Installation at the tank, first run, leak test | ✅ done | 09.10.2026 15:44–16:07 (one leak at the new connections found and sealed) |
+| Overpressure cut-off + line-end correction (firmware) | ✅ flashed | 09.10.2026 15:52 / 16:06 – cut-off **never triggered yet**, untested in a real fault |
+| Level comparison | ⚠️ provisional | dipstick not reachable → delivery balance, correction 6.5 cm (minimum); exact at the next delivery |
+| Automatic measurement (every 6 h) | ✅ on | since 09.10.2026 16:07 |
 | HA automations (warning, forecast) | ❌ open | none created yet (checked 08.10.: no automation/script uses the device) |
 
 ---
@@ -73,12 +75,12 @@ The first basket for the pneumatics (8 items, €54.62) was ordered on 04.10.202
 
 | Part | Qty | Description / type | Source, ASIN, price | Status |
 |---|---|---|---|---|
-| T-piece measuring line | 1 | Brass hose-barb T **6 × 4 × 6 mm** (6 mm through, 4 mm branch) | Amazon B0GHMXRYNT, €5.99 (2 pcs) | ⏳ first order 04.10. not shipped; **reordered 08.10.** |
+| T-piece measuring line | 1 | Brass hose-barb T **6 × 4 × 6 mm** (6 mm through, 4 mm branch) | Amazon B0GHMXRYNT, €5.99 (2 pcs) | ✅ installed 09.10. |
 | Silicone hose 6 mm ID | 1 m | Silicone hose 6 mm ID (onto the cut 6 mm copper line) | Amazon B0CYGQD96H, €5.59 | ordered 04.10. (delivery not explicitly noted) |
 | Hose clamps | 10 | Stainless-steel hose clamps 6–12 mm (Leryati) | Amazon B0C24792WR, €4.99 | ordered 04.10. (delivery not explicitly noted) |
 | Aquarium set | 1 | 48 pieces: 6 m silicone hose 4 mm, check valves, T and L connectors | Amazon B0C2PYBDGJ, €9.99 | ✅ available, used in the box (check valve + T) |
 | Silicone hose 2.5 mm | 1 m | Silicone hose 2.5 mm ID × 4 mm OD – fits the sensor barb and sits tightly in the 4 mm aquarium hose | Amazon B0CXPW74GZ, €4.19 | ordered 04.10. (delivery not explicitly noted) |
-| Measuring line | – | existing copper line **6 mm OD** (Jens measured 6.1 mm) from the tank bottom into the basement | existing | ⚠️ probably silted up |
+| Measuring line | – | existing copper line **6 mm OD** (Jens measured 6.1 mm) from the tank into the basement | existing | ✅ clear (09.10.) |
 
 Fallback if the brass T fails again: push-fit T 6-4-6 POM (B0GLGCTVRH) or PA (B0CB8V2NXD).
 Unverified whether push-fit connectors hold tight and pull-proof on 6.1 mm copper – before installation do a pull test + pressure-hold test.
@@ -97,7 +99,7 @@ Unverified whether push-fit connectors hold tight and pull-proof on 6.1 mm coppe
 ### Tools / aids
 
 Calipers, multimeter, soldering iron, 3D printer, glass of water + ruler (calibration),
-dipstick for the manhole (possibly with water-finding paste) – **dipstick still open**.
+dipstick for the manhole (possibly with water-finding paste) – **not reachable on 09.10.**, comparison therefore via the delivery balance.
 
 ---
 
@@ -190,7 +192,7 @@ Older versions are kept locally as `*.vor-stuetzen-20261008`, `*.vor-laschen-202
 
 ## 6. Firmware
 
-File: [`firmware/tankmessung.yaml`](firmware/tankmessung.yaml) – state from the ESPHome Builder (08.10.2026).
+File: [`firmware/tankmessung.yaml`](firmware/tankmessung.yaml) – state from the ESPHome Builder (09.10.2026).
 **The version in the ESPHome Builder is authoritative**; mirror changes here.
 
 | Setting | Value |
@@ -218,24 +220,35 @@ File: [`firmware/tankmessung.yaml`](firmware/tankmessung.yaml) – state from th
 The pump is built for 3–3.7 V and runs on 5 V – hence the limit.
 **Safety:** script `pumpe_sicherung` (pump safety) always switches the pump off after **60 s**, even in manual mode.
 
-**Measurement sequence (script `messung` – measurement):** pump 100 % (= 85 % PWM) for the *flush time* (default 30 s) → off →
-*settling time* (default 10 s) → read HX710B → 2 s → read again. The sensor is read **only** in this script
-(`update_interval: never`).
+**Measurement sequence (script `messung` – measurement):** pump 100 % (= 85 % PWM) for the *flush time* (default 30 s). **While
+pumping** the HX710B is read every 0.5 s; if the pressure rises above the *overpressure limit* (default 150 mbar), the pump switches
+off immediately and the measurement is discarded (`binary_sensor.oltank_uberdruck_abbruch` = on). Fill height and contents are **not**
+calculated while pumping. Otherwise: pump off → *settling time* (default 10 s) → read → 2 s → read again. The sensor is read **only**
+in this script (`update_interval: never`). The highest pressure while pumping goes to `sensor.oltank_hochstdruck_beim_pumpen`.
 
-### Entities in Home Assistant (12, checked 08.10.2026)
+**Fill height** = pressure / 0.824 + *line end above bottom* (default 6.5 cm). The measuring line ends above the tank bottom; oil
+below it is invisible to the measurement (derivation in [docs/einmessen.en.md](docs/einmessen.en.md)).
+
+> The overpressure cut-off has **never triggered** so far (the line is clear) – untested in a real fault.
+
+### Entities in Home Assistant (16, checked 09.10.2026)
 
 | Entity | Type | Purpose |
 |---|---|---|
 | `button.oltank_messung_starten` (start measurement) | Button | trigger a measurement |
-| `switch.oltank_automatische_messung` (automatic measurement) | Switch (config) | measurement every 6 h – **OFF by default** (`RESTORE_DEFAULT_OFF`) |
+| `switch.oltank_automatische_messung` (automatic measurement) | Switch (config) | measurement every 6 h – **OFF by default** (`RESTORE_DEFAULT_OFF`), on here since 09.10. |
 | `number.oltank_spulzeit_pumpe` (pump flush time) | Number 5–60 s | pumping duration per measurement (30 s) |
 | `number.oltank_beruhigungszeit` (settling time) | Number 2–60 s | waiting time before reading (10 s; 60 s for leak tests) |
+| `number.oltank_uberdruck_grenze` (overpressure limit) | Number 50–300 mbar | overpressure cut-off while pumping (150 mbar) |
+| `number.oltank_leitungsende_uber_boden` (line end above bottom) | Number 0–30 cm | correction: height of the line end above the tank bottom (6.5 cm) |
 | `fan.oltank_pumpe` (pump) | Fan (diagnostic) | pump by hand, max. 60 s |
 | `sensor.oltank_druck_rohwert` (pressure raw value) | Diagnostic | HX710B raw value (for calibration) |
 | `sensor.oltank_druck` (pressure) | mbar | pressure = oil column |
-| `sensor.oltank_fullhohe` (fill height) | cm | fill height (clamped to 0–160 cm) |
+| `sensor.oltank_fullhohe` (fill height) | cm | fill height incl. correction (clamped to 0–160 cm) |
 | `sensor.oltank_inhalt` (contents) | L | contents, `device_class: volume_storage` |
-| `sensor.oltank_wlan_signal` (Wi-Fi signal) | dBm | −42 dBm on 08.10. |
+| `sensor.oltank_hochstdruck_beim_pumpen` (max pressure while pumping) | mbar (diagnostic) | highest pressure while pumping (clear line ≈ oil column) |
+| `binary_sensor.oltank_uberdruck_abbruch` (overpressure abort) | Problem | on = last measurement aborted due to overpressure (line blocked?) |
+| `sensor.oltank_wlan_signal` (Wi-Fi signal) | dBm | −42 dBm on the bench, −50 to −61 dBm at the tank |
 | `sensor.oltank_laufzeit` (uptime) | s | uptime |
 | `button.oltank_neustart` (restart) | Button (diagnostic) | restart the ESP |
 
@@ -267,7 +280,7 @@ The pump is built for 3–3.7 V and runs on 5 V – hence the limit.
 | [docs/einmessen.en.md](docs/einmessen.en.md) | **Calibration** with a water column, formulas, dipstick table, comparison at the tank |
 | [docs/einbau.en.md](docs/einbau.en.md) | Installation at the tank, blowing the measuring line clear, AwSV, first run, leak test |
 | [docs/fehlersuche.en.md](docs/fehlersuche.en.md) | known fault patterns with cause and solution |
-| [docs/verlauf.en.md](docs/verlauf.en.md) | Project history 04.–08.10.2026 |
+| [docs/verlauf.en.md](docs/verlauf.en.md) | Project history 04.–09.10.2026 |
 
 Short version:
 
@@ -275,15 +288,15 @@ Short version:
 2. **Commissioning:** plug in the USB power supply, is the device online in HA? `Messung starten` ("Start measurement") with the hose open → pump runs, blows.
 3. **Calibration:** zero point with the hose open (sensor warm, ≥ 5 min after switching on), then 10 cm water column = 9.81 mbar →
    `roh_pro_mbar = (roh_10cm − roh_null) / 9,81`. The cross-check must give ~10 mbar.
-4. **Installation:** only on a **clear** measuring line; branch to the old gauge permanently sealed.
-5. **Test:** first run with 60 s settling time (leak test), then dipstick comparison, then settling time 10 s.
+4. **Installation:** branch to the old gauge permanently sealed. Whether the line is clear shows in the first run (set the overpressure limit low beforehand, e.g. 50 mbar).
+5. **Test:** first run with 60 s settling time (leak test), then comparison (dipstick or delivery balance), then settling time 10 s.
 6. Only then switch on `Automatische Messung` ("Automatic measurement").
 
 ---
 
 ## 8. Home Assistant integration
 
-- Integration: **ESPHome**, device `Öltank` (oil tank), 12 entities (table above).
+- Integration: **ESPHome**, device `Öltank` (oil tank), 16 entities (table above).
 - There is **no `ha/` folder yet** and no automations/scripts that use the device (search in HA on 08.10.2026).
 - Planned (from the notes):
   - **Low-level warning:** early warning at 1,500 l, urgent at 800 l (push notification to the household members).
@@ -297,15 +310,11 @@ Short version:
 
 | Item | Who | Date |
 |---|---|---|
-| Wait for brass T 6×4×6 (reordered) | Jens | delivery open |
-| **Blow the measuring line clear** – specialist company (recommended, together with tank cleaning + level-limit sensor replacement) or yourself (legally unclear, see AwSV) | Jens decides | before installation |
-| Installation at the tank, first run + 60 s leak test, dipstick comparison | Jens + Claude | **Sat 10.10.2026 10:00** |
-| Dipping in the manhole (expected at 1,900 l ≈ 50.6 cm) | Jens | during installation |
-| Settling time back to 10 s after the test | – | after installation |
-| Switch on automatic measurement | – | after the comparison |
+| **Exact comparison of the line-end correction:** one measurement directly before and after the next delivery, delivered quantity from the delivery note → correction unambiguous | Jens + Claude | next oil delivery |
+| Overpressure cut-off still untested in a real fault | – | watch |
+| Old gauge defective (~800 l without pressure) – keep it or seal the branch | Jens | – |
 | HA: warning 1,500 / 800 l, forecast | Claude | afterwards |
 | Cancel or keep the D4184 wrong purchase | Jens | – |
-| Monitor unexplained pressure drop in the 2nd leak run (18:07) | – | during installation |
 | Level-limit sensor (Grenzwertgeber) with perforated sleeve: annual inspection by a specialist company or replacement with a slotted sleeve (TÜV note 2019 + 2024) | Jens | with the tank cleaning |
 | Next AwSV inspection | Jens | 01/2029 (register from 11/2028) |
 
@@ -325,7 +334,7 @@ esphome-tankmessung/
 │   ├── fehlersuche.md / .en.md       fault patterns (troubleshooting)
 │   └── verlauf.md / .en.md           chronicle (project history)
 ├── firmware/
-│   ├── tankmessung.yaml              ESPHome configuration (Builder state 08.10.2026)
+│   ├── tankmessung.yaml              ESPHome configuration (Builder state 09.10.2026)
 │   └── secrets.example.yaml          template, no real values
 ├── gehaeuse/
 │   ├── tankmessung-gehaeuse.scad     OpenSCAD source (box + lid)

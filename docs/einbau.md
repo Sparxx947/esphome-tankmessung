@@ -2,17 +2,18 @@
 
 # Einbau am Tank
 
-Geplant: **Samstag 10.10.2026, 10:00** (Jens, erster Lauf zusammen mit Claude).
+**Erledigt am 09.10.2026** (Jens, erster Lauf zusammen mit Claude). Ergebnisse in [verlauf.md](verlauf.md).
 
 ## Voraussetzung: Die Messleitung muss frei sein
 
 Die alte Anzeige stand bei leerem Tank (Störung D1 am 03./04.10.) fest bei ~800 l, auch nach dem Pumpen. Nach der Lieferung
-von 1.500 l am 05.10. zeigte sie 1.900 l – sie reagiert also wieder, die Leitung ist **nicht völlig zu**, aber vermutlich
-verschlammt. Am Boden des Klarsichtbechers (Abscheider in der Messleitung unter der Anzeige) lag etwas Dunkles/Rötliches –
+von 1.500 l am 05.10. zeigte sie 1.900 l – daraus wurde auf eine verschlammte Leitung geschlossen.
+**Am 09.10. widerlegt:** Die Leitung ist frei, das Manometer ist defekt (drucklos ~800 l). Am Boden des Klarsichtbechers (Abscheider in der Messleitung unter der Anzeige) lag etwas Dunkles/Rötliches –
 möglicherweise Öl in der Messleitung (unbelegt).
 
-**Frei-Kennzeichen beim ersten Lauf:** Der Druck steigt bis zur Ölsäule (~40 mbar bei ~50 cm) und bleibt stehen.
-**Über ~150 mbar = Leitung zu → sofort abbrechen** (Sensorgrenze 40 kPa, Pumpe schafft 80–120 kPa).
+**Frei-Kennzeichen beim ersten Lauf:** Der Druck steigt bis zur Ölsäule und bleibt **bei laufender Pumpe** flach stehen
+(09.10.: 30,95 mbar über 25 s). **Über der Überdruck-Grenze = Leitung zu** → die Firmware schaltet die Pumpe seit 09.10.
+selbst ab (Sensorgrenze 40 kPa, Pumpe schafft 80–120 kPa). Für den ersten Lauf die Grenze niedrig setzen (z. B. 50 mbar).
 
 ### AwSV: wer darf was
 
@@ -47,15 +48,18 @@ Recherche 08.10.2026 (keine Rechtsberatung):
 2. **Abzweig zur alten Anzeige dauerhaft dicht** anschließen. Kein Rückschlagventil als Verschluss – das leckt (Test 08.10.).
 3. **Box an die Wand** (4 Laschen, Ø 4,5 mm), 4-mm-Schlauch vom T-Abzweig in die rechte Wand der Box, USB-Netzteil ≥ 1 A.
 4. ≥ 5 min warten (Sensor warm).
-5. **Erster Lauf** mit Vorsicht: Bei unklarer Leitung *Vorschlag (nicht erprobt):* Spülzeit erst auf 5 s stellen und den Druck
-   ansehen, bevor 30 s gepumpt wird. Ergebnis über 150 mbar → abbrechen, Leitung ist zu.
+5. **Erster Lauf** mit Vorsicht: `number.oltank_uberdruck_grenze` auf **50 mbar**, „Messung starten“, Druckverlauf in HA ansehen
+   (`sensor.oltank_druck` wird beim Pumpen alle 0,5 s gemeldet). Flaches Plateau = frei; Abbruch = Leitung zu oder hoher
+   Strömungswiderstand. Danach Grenze zurück auf 150 mbar.
 6. **Dichtprobe:** `number.oltank_beruhigungszeit` auf **60 s**, „Messung starten“. Der Druck nach 60 s muss dem nach 10 s
-   entsprechen. Am Tisch: 10,07 → 10,07 mbar und 10,76 / 10,74 mbar = dicht.
-7. **Peilstab-Abgleich** im Domschacht (Erwartung siehe [einmessen.md](einmessen.md#3-abgleich-am-tank-nach-dem-einbau)).
+   entsprechen. Am Tisch: 10,07 → 10,07 mbar und 10,76 / 10,74 mbar = dicht. Am Tank (09.10.): erster Lauf **undicht**
+   (30,9 → 21,4 mbar in 10 s), nach Neuabdichten 31,0 → 29,75 mbar in 60 s = dicht.
+7. **Abgleich**: Peilstab im Domschacht – oder, wenn er nicht erreichbar ist (09.10.), über die **Lieferbilanz**
+   (siehe [einmessen.md](einmessen.md#3-abgleich-am-tank-nach-dem-einbau)) und `number.oltank_leitungsende_uber_boden` setzen.
 8. Beruhigungszeit **zurück auf 10 s**.
 9. Erst jetzt `switch.oltank_automatische_messung` **einschalten** (Messung alle 6 h).
 
 ## Nicht anfassen
 
 - **AFRISO-Leckanzeiger** über der Anzeige (Tank doppelwandig) – Leck-Lampe war aus.
-- Die alte Anzeige bleibt in Betrieb (Ablesen nach dem Pumpen mit dem schwarzen Knopf).
+- Die alte Anzeige bleibt angeschlossen (Ablesen nach dem Pumpen mit dem schwarzen Knopf), zeigt aber falsch (Manometer defekt, drucklos ~800 l).

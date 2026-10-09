@@ -58,18 +58,44 @@ tatsächliche Tankmaße und die Öldichte. Deshalb gegen eine unabhängige Messu
    | 1.900 l | 50,6 cm | 41,7 mbar |
 
    Seitdem läuft der Brenner wieder – der aktuelle Stand liegt also etwas darunter.
-   Welche Deutung stimmt, ist **ungeklärt**: Wahrscheinlich (unbelegt) blieben ~400 l unter dem Saugrohr, Inhalt nach Lieferung
-   ≈ 1.900 l, und die alte Anzeige stand vorher wegen Schlamm/Wasser am Boden ~400 l zu hoch.
+   **Geklärt am 09.10.:** Die 1.900 l waren falsch – das alte Manometer ist defekt (drucklos ~800 l).
 3. Weicht die Peilung ab:
-   - **konstanter Versatz in cm** → Leitungsende sitzt nicht am Boden bzw. Schlamm; Korrektur als Höhen-Offset (in der Firmware
-     bisher nicht vorgesehen – müsste ergänzt werden).
+   - **konstanter Versatz in cm** → Leitungsende sitzt nicht am Boden bzw. Schlamm; Korrektur über
+     `number.oltank_leitungsende_uber_boden` (seit 09.10. in der Firmware, wird zur Füllhöhe addiert).
    - **proportionale Abweichung** → Öldichte/Tankmaße; `oel_mbar_pro_cm` anpassen.
 4. Später zusätzlich mit jeder **Liefermenge** gegenprüfen (Zunahme in Litern vor/nach der Lieferung).
+
+### Abgleich ohne Peilstab: Lieferbilanz (09.10.2026)
+
+Der Peilstab war nicht erreichbar. Stattdessen:
+
+- 05.10.: **1.500 l** in einen „leeren“ Tank (der Brenner bekam kein Öl mehr = Spiegel am Ende des Saugrohrs).
+- Verbrauch bis 09.10. ~35 l (geschätzt, ~7 l/Tag im Oktober) → jetzt **mindestens ~1.465 l** + Rest unter dem Saugrohr.
+- Gemessen **ohne** Korrektur: 30,95–31,1 mbar beim Pumpen, nach 10 s Ruhe ≈ 30 mbar → 36,1 cm ≈ **1.184 l** – weniger als
+  allein die Lieferung. → Das Leitungsende sitzt **über dem Tankboden**.
+
+Unbekannt bleibt der Rest unter dem Saugrohr. Abhängig davon:
+
+| Saugrohr endet … über Boden | Rest vor Lieferung | Inhalt jetzt | Leitungsende über Boden |
+|---|---|---|---|
+| 3 cm | 30 l | ≈ 1.495 l | **6,5 cm** (eingestellt) |
+| 5 cm | 65 l | ≈ 1.530 l | 7,2 cm |
+| 10 cm | 182 l | ≈ 1.647 l | 9,6 cm |
+| 15 cm | 331 l | ≈ 1.796 l | 12,5 cm |
+| 20 cm | 505 l | ≈ 1.970 l | 15,8 cm |
+
+Eingestellt ist der **Mindestwert 6,5 cm**: Der Inhalt wird eher zu niedrig angezeigt – für Warnungen die sichere Seite.
+Kontrolllauf 09.10. 16:07: **43,0 cm ≈ 1.516 l**.
+
+**Genauer Abgleich bei der nächsten Lieferung:** direkt davor und direkt danach je eine Messung, Liefermenge vom Lieferschein.
+Weil der Tank rund ist, entspricht jeder Zentimeter je nach Höhe unterschiedlich vielen Litern – aus zwei Höhen und der
+bekannten Literdifferenz ergibt sich die Korrektur eindeutig.
 
 ## 4. Peiltabelle (aus der Firmware-Formel)
 
 Rechnerisch mit r = 8 dm, L = 37,5 dm, skaliert auf 7.000 l, 0,824 mbar/cm. Der erwartete Rohwert gilt für die
-Einmessung vom 08.10.
+Einmessung vom 08.10. Druck und Rohwert gelten **ohne** Leitungsende-Korrektur; mit Korrektur gehört ein Druck zur Füllhöhe
+„Tabellenhöhe + Korrektur“.
 
 | Füllhöhe | Inhalt | Druck | Rohwert (erwartet) |
 |---|---|---|---|
@@ -99,4 +125,6 @@ Warnschwellen (geplant): 1.500 l ≈ 42,7 cm, 800 l ≈ 27,5 cm.
 |---|---|---|
 | `number.oltank_spulzeit_pumpe` | 30 s | 30 s |
 | `number.oltank_beruhigungszeit` | **10 s** | 60 s |
-| `switch.oltank_automatische_messung` | erst nach dem Abgleich am Tank **an** | aus |
+| `number.oltank_uberdruck_grenze` | 150 mbar | 150 mbar (erster Lauf an neuer Leitung: 50 mbar) |
+| `number.oltank_leitungsende_uber_boden` | 6,5 cm (vorläufig, siehe oben) | – |
+| `switch.oltank_automatische_messung` | erst nach dem Abgleich am Tank **an** (an seit 09.10.) | aus |
